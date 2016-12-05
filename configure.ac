@@ -1,6 +1,6 @@
 # Process this file with autoconf to produce a configure script.
 AC_PREREQ([2.66])
-AC_INIT([mate-applet-lockkeys], [0.2.4], [assen.totin@gmail.com])
+AC_INIT([mate-applet-lockkeys], [0.2.5], [assen.totin@gmail.com])
 
 AM_INIT_AUTOMAKE([-Wall])
 
@@ -37,7 +37,7 @@ TOPLEVELDIR=`pwd`
 AC_SUBST([TOPLEVELDIR])
 
 # gettext
-AM_GNU_GETTEXT_VERSION(0.18.1)
+AM_GNU_GETTEXT_VERSION(0.19)
 AM_GNU_GETTEXT([external])
 if test $USE_NLS != "yes" ; then
         echo "*** gettext not found. You're losing internationalization."
@@ -91,7 +91,7 @@ PKG_CHECK_MODULES([LIBMATEPANELAPPLET_4], [libmatepanelapplet-4.0], [LIBMATEPANE
 ])
 
 ### Check for packages
-PKG_CHECK_MODULES([GTK], [gtk+-2.0])
+PKG_CHECK_MODULES([GTK], [gtk+-3.0])
 PKG_CHECK_MODULES([GLIB], [glib-2.0])
 
 # Makefiles
