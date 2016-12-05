@@ -54,17 +54,17 @@ static void applet_reorder_icons(int size, int orient, LedApplet *applet) {
 	 * have been put there before...
 	 * they have to be ref'ed before doing so
 	 */
-	if (applet->num_pix->parent) {
+	if (gtk_widget_get_parent(applet->num_pix)) {
 		g_object_ref(G_OBJECT(applet->num_pix));
-		gtk_container_remove(GTK_CONTAINER(applet->num_pix->parent), applet->num_pix);
+		gtk_container_remove(GTK_CONTAINER(gtk_widget_get_parent(applet->num_pix)), applet->num_pix);
 	}
-	if (applet->caps_pix->parent) {
+	if (gtk_widget_get_parent(applet->caps_pix)) {
 		g_object_ref(G_OBJECT(applet->caps_pix));
-		gtk_container_remove(GTK_CONTAINER(applet->caps_pix->parent), applet->caps_pix);
+		gtk_container_remove(GTK_CONTAINER(gtk_widget_get_parent(applet->caps_pix)), applet->caps_pix);
 	}
-	if (applet->scroll_pix->parent)	{
+	if (gtk_widget_get_parent(applet->scroll_pix))	{
 		g_object_ref(G_OBJECT(applet->scroll_pix));
-		gtk_container_remove(GTK_CONTAINER(applet->scroll_pix->parent), applet->scroll_pix);
+		gtk_container_remove(GTK_CONTAINER(gtk_widget_get_parent(applet->scroll_pix)), applet->scroll_pix);
 	}
 	
 	/* Do we put the pixmaps into the vbox or the hbox?
@@ -155,10 +155,10 @@ static void about_cb (GtkAction *action, LedApplet *applet) {
         GtkWidget *label = gtk_label_new (&msg1[0]);
 
         GtkWidget *quitDialog = gtk_dialog_new_with_buttons (_("Keyboard Lock Keys"), GTK_WINDOW(applet), GTK_DIALOG_MODAL, NULL);
-        GtkWidget *buttonOK = gtk_dialog_add_button (GTK_DIALOG(quitDialog), GTK_STOCK_OK, GTK_RESPONSE_OK);
+        GtkWidget *buttonOK = gtk_dialog_add_button (GTK_DIALOG(quitDialog), _("_OK"), GTK_RESPONSE_OK);
 
         gtk_dialog_set_default_response (GTK_DIALOG (quitDialog), GTK_RESPONSE_CANCEL);
-        gtk_container_add (GTK_CONTAINER (GTK_DIALOG(quitDialog)->vbox), label);
+        gtk_container_add (GTK_CONTAINER (gtk_dialog_get_content_area(GTK_DIALOG(quitDialog))), label);
         g_signal_connect (G_OBJECT(buttonOK), "clicked", G_CALLBACK (quitDialogOK), (gpointer) quitDialog);
 
         gtk_widget_show_all (GTK_WIDGET(quitDialog));
@@ -243,29 +243,31 @@ static void settings_cb (GtkAction *action, LedApplet *applet) {
 
 	applet->settings = 
 		GTK_DIALOG(gtk_dialog_new_with_buttons(_("Lock Keys Preferences"), 
-		NULL, GTK_DIALOG_DESTROY_WITH_PARENT | GTK_DIALOG_NO_SEPARATOR,
-		GTK_STOCK_CLOSE, GTK_RESPONSE_ACCEPT, 
+		NULL, GTK_DIALOG_DESTROY_WITH_PARENT,
+		_("_Close"), GTK_RESPONSE_ACCEPT, 
 		//GTK_STOCK_HELP, GTK_RESPONSE_HELP,
 		NULL));
 
 	gtk_dialog_set_default_response(GTK_DIALOG(applet->settings), GTK_RESPONSE_ACCEPT);
 	gtk_window_set_resizable(GTK_WINDOW(applet->settings), FALSE);
 	
-	vbox1 = gtk_vbox_new(FALSE, 6);
+	vbox1 = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
 	gtk_container_set_border_width(GTK_CONTAINER(vbox1), 12);
 	
 	header_str = g_strconcat("<span weight=\"bold\">", _("Settings"), "</span>", NULL);
 	header_lbl = gtk_label_new(header_str);
 	gtk_label_set_use_markup(GTK_LABEL(header_lbl), TRUE);
-	gtk_misc_set_alignment(GTK_MISC(header_lbl), 0, 0.5);
+	gtk_label_set_xalign(GTK_LABEL(header_lbl), 0);
+	gtk_label_set_yalign(GTK_LABEL(header_lbl), 0.5);
+	
 	g_free(header_str);
 	gtk_box_pack_start(GTK_BOX(vbox1), header_lbl, TRUE, TRUE, 0);
 	
-	hbox = gtk_hbox_new(FALSE, 0);
+	hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
 	gtk_box_pack_start(GTK_BOX(vbox1), hbox, TRUE, TRUE, 0);
 	
 	dummy_lbl = gtk_label_new("    ");
-	vbox2 = gtk_vbox_new(FALSE, 6);
+	vbox2 = gtk_box_new(GTK_ORIENTATION_VERTICAL, 6);
 	gtk_box_pack_start(GTK_BOX(hbox), dummy_lbl, TRUE, TRUE, 0);
 	gtk_box_pack_start(GTK_BOX(hbox), vbox2, TRUE, TRUE, 0);
 	
@@ -290,7 +292,7 @@ static void settings_cb (GtkAction *action, LedApplet *applet) {
 	gtk_box_pack_start(GTK_BOX(vbox2), applet->show_cb[SCROLLLOCK], TRUE, TRUE, 0);
 	
 	gtk_widget_show_all(vbox1);
-	gtk_container_add(GTK_CONTAINER(applet->settings->vbox), vbox1); 
+	gtk_container_add(GTK_CONTAINER(gtk_dialog_get_content_area(applet->settings)), vbox1); 
 	
 	g_signal_connect(G_OBJECT(applet->show_cb[CAPSLOCK]), "toggled", G_CALLBACK(show_cb_change_cb), (gpointer)applet);
 	g_signal_connect(G_OBJECT(applet->show_cb[NUMLOCK]), "toggled", G_CALLBACK(show_cb_change_cb), (gpointer)applet);
@@ -338,7 +340,7 @@ static unsigned int get_lockmask(LedApplet *applet) {
 	if (!xkb->names)
 		return 0;
     
-	for(i = 0;i <= XkbNumVirtualMods;i++) {                                         
+	for(i = 0;i < XkbNumVirtualMods;i++) {                                         
 		unsigned int tmp = 0;
 		char* name = NULL;
 		if (!xkb->names->vmods[i])
@@ -453,48 +455,15 @@ static gboolean init_xkb_extension(LedApplet *applet) {
 }
 
 static const GtkActionEntry applet_menu_actions [] = {
-	{ "Settings", GTK_STOCK_PROPERTIES, "_Settings", NULL, NULL, G_CALLBACK (settings_cb) },
-	{ "About", GTK_STOCK_ABOUT, "_About", NULL, NULL, G_CALLBACK (about_cb) }
+	{ "Settings", "_Properties", "_Settings", NULL, NULL, G_CALLBACK (settings_cb) },
+	{ "About", "_About", "_About", NULL, NULL, G_CALLBACK (about_cb) }
 };
 
-
-static void applet_back_change (MatePanelApplet *a, MatePanelAppletBackgroundType type, GdkColor *color, GdkPixmap *pixmap, LedApplet *applet) {
-        /* taken from the TrashApplet */
-        GtkRcStyle *rc_style;
-        GtkStyle *style;
-
-        /* reset style */
-        gtk_widget_set_style (GTK_WIDGET (applet->applet), NULL);
-        rc_style = gtk_rc_style_new ();
-        gtk_widget_modify_style (GTK_WIDGET (applet->applet), rc_style);
-        g_object_unref (rc_style);
-
-        switch (type) {
-                case PANEL_COLOR_BACKGROUND:
-                        gtk_widget_modify_bg (GTK_WIDGET (applet->applet), GTK_STATE_NORMAL, color);
-                        break;
-
-                case PANEL_PIXMAP_BACKGROUND:
-                        style = gtk_style_copy (gtk_widget_get_style (GTK_WIDGET (applet->applet)));
-                        if (style->bg_pixmap[GTK_STATE_NORMAL])
-                                g_object_unref (style->bg_pixmap[GTK_STATE_NORMAL]);
-                        style->bg_pixmap[GTK_STATE_NORMAL] = g_object_ref(pixmap);
-                        gtk_widget_set_style (GTK_WIDGET (applet->applet), style);
-                        g_object_unref (style);
-                        break;
-
-                case PANEL_NO_BACKGROUND:
-                default:
-                        break;
-        }
-
-}
 
 /* The "main" function
  */
 static gboolean led_applet_factory(MatePanelApplet *applet_widget, const gchar *iid, gpointer data) {
-	GdkDrawable *drawable;
-	char *buf;
+	GdkWindow *window;
 	LedApplet *applet;
 	GdkPixbuf *icon;
 	GList *iconlist = NULL;
@@ -524,12 +493,12 @@ static gboolean led_applet_factory(MatePanelApplet *applet_widget, const gchar *
 	 * either 
 	 */
 
-	drawable = gdk_get_default_root_window();
-	g_assert(drawable);
-	applet->rootwin = gdk_x11_drawable_get_xdisplay(drawable);
+	window = gdk_get_default_root_window();
+	g_assert(window);
+	applet->rootwin = gdk_x11_display_get_xdisplay(GDK_DISPLAY(gdk_window_get_display(window)));
 	
-	applet->vbox = gtk_vbox_new(FALSE, 0);
-	applet->hbox = gtk_hbox_new(FALSE, 0);
+	applet->vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+	applet->hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
 
 	applet->num_pix = gtk_image_new();
 	applet->caps_pix = gtk_image_new();
@@ -602,14 +571,13 @@ static gboolean led_applet_factory(MatePanelApplet *applet_widget, const gchar *
         GtkActionGroup *action_group = gtk_action_group_new ("Lockkeys Applet Actions");
         gtk_action_group_add_actions (action_group, applet_menu_actions, G_N_ELEMENTS (applet_menu_actions), applet);
 	gtk_action_group_set_translation_domain (action_group, PACKAGE_NAME);
-	mate_panel_applet_setup_menu_from_file(applet->applet, "/usr/share/mate-2.0/ui/lockkeys-applet-menu.xml", action_group);
+	mate_panel_applet_setup_menu_from_file(applet->applet, "/usr/share/mate/ui/lockkeys-applet-menu.xml", action_group);
 
 	gtk_widget_show_all(GTK_WIDGET(applet_widget));
 
 	g_signal_connect(G_OBJECT(applet_widget), "change_size", G_CALLBACK(applet_change_size), (gpointer)applet);
 	g_signal_connect(G_OBJECT(applet_widget), "change_orient", G_CALLBACK(applet_change_orient), (gpointer)applet);
 	g_signal_connect(G_OBJECT(applet_widget), "destroy", G_CALLBACK(applet_destroy), (gpointer)applet);
-	g_signal_connect(G_OBJECT(applet_widget), "change_background", G_CALLBACK (applet_back_change), (gpointer)applet);
 
 	if (!XkbSelectEvents(applet->rootwin, XkbUseCoreKbd, XkbIndicatorStateNotifyMask, XkbIndicatorStateNotifyMask))
 		return FALSE;
